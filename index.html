@@ -124,9 +124,16 @@ document.getElementById(id).classList.add('active')
 render()
 }
 
-function save(){
+async function save(){
+
 localStorage.setItem("crm",JSON.stringify(db))
-supabaseClient.from("app_data").upsert([{id:1,data:db}])
+
+let res = await supabaseClient
+.from("app_data")
+.upsert([{id:1,data:db}])
+
+alert(JSON.stringify(res))
+
 }
 
 /* יומן */
