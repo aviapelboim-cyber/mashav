@@ -127,16 +127,10 @@ async function save(){
 
 localStorage.setItem("crm",JSON.stringify(db))
 
-// מחיקה של הכל
-await supabaseClient
-.from("app_data")
-.delete()
-.neq("id", -1)
-
-// הוספה מחדש
 let res = await supabaseClient
 .from("app_data")
-.insert([{id:1,data:db}])
+.update({data:db})
+.eq("id",1)
 
 alert(JSON.stringify(res))
 
