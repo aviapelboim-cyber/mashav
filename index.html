@@ -127,7 +127,7 @@ async function save(){
 localStorage.setItem("crm",JSON.stringify(db))
 let res = await supabaseClient
 .from("app_data")
-.upsert([{id:1,data:db}])
+.upsert([{id:1,data:db}], { onConflict: 'id' })
 alert(JSON.stringify(res))
 }
 
