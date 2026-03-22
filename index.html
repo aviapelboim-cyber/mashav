@@ -115,7 +115,6 @@ const supabaseClient = supabase.createClient(
 )
 
 let db = JSON.parse(localStorage.getItem("crm")) || {tasks:[],groups:[],marketing:[]}
-
 let currentGroup=null,currentClient=null,currentChannel=null
 
 function go(id){
@@ -125,15 +124,11 @@ render()
 }
 
 async function save(){
-
 localStorage.setItem("crm",JSON.stringify(db))
-
 let res = await supabaseClient
 .from("app_data")
 .upsert([{id:1,data:db}])
-
 alert(JSON.stringify(res))
-
 }
 
 /* יומן */
