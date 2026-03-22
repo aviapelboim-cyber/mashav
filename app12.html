@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>מערכת מ.ש.ב</title>
+
+<style>
+body{font-family:"Times New Roman";margin:0;background:#eef2f7}
+header{background:#2c3e50;color:white;text-align:center;padding:20px;font-size:24px}
+.nav{display:flex;justify-content:center;gap:10px;margin-top:10px}
+.nav button{padding:10px 15px;font-size:16px;border:none;border-radius:6px;cursor:pointer;background:white}
+.view{display:none;padding:20px}
+.active{display:block}
+.card{background:white;padding:10px;margin:6px;border-radius:8px;display:inline-block;min-width:120px;text-align:center;cursor:pointer}
+input,select,textarea{padding:8px;margin:5px;font-size:15px;width:90%}
+table{width:100%;background:white;border-collapse:collapse;margin-top:10px}
+td,th{border:1px solid #ccc;padding:8px}
+</style>
+
+</head>
+<body>
+
+<header>
+מערכת – מ.ש.ב
+<div class="nav">
+<button onclick="go('home')">יומן</button>
+<button onclick="go('clients')">לקוחות</button>
+<button onclick="go('marketing')">שיווק</button>
+</div>
+</header>
+
+<!-- יומן -->
+<div id="home" class="view active">
+<input id="taskText" placeholder="משימה">
+<input type="date" id="taskDate">
+<button onclick="addTask()">הוסף</button>
+<table><tbody id="tasks"></tbody></table>
+</div>
+
+<!-- לקוחות -->
+<div id="clients" class="view">
+<button onclick="go('home')">←</button>
+<input id="groupName" placeholder="שם קבוצה">
+<button onclick="addGroup()">הוסף</button>
+<div id="groups"></div>
+</div>
+
+<!-- קבוצה -->
+<div id="groupPage" class="view">
+<button onclick="go('clients')">←</button>
+<h3 id="groupTitle"></h3>
+<input id="clientName" placeholder="שם לקוח">
+<button onclick="addClient()">הוסף</button>
+<div id="clientsList"></div>
+</div>
+
+<!-- לקוח -->
+<div id="clientPage" class="view">
+<button onclick="go('groupPage')">←</button>
+<h2 id="cName"></h2>
+
+<input id="cPhone" placeholder="טלפון" oninput="save()">
+<input id="cAddress" placeholder="כתובת" oninput="save()">
+
+<select id="cReg" onchange="save()">
+<option>בתהליך</option>
+<option>נרשם</option>
+<option>בוטל</option>
+</select>
+
+<select id="cPay" onchange="save()">
+<option>לא שולם</option>
+<option>חלקי</option>
+<option>שולם</option>
+</select>
+
+<textarea id="cNotes" placeholder="הערות" oninput="save()"></textarea>
+</div>
+
+<!-- שיווק -->
+<div id="marketing" class="view">
+<button onclick="go('home')">←</button>
+<input id="mName" placeholder="שם ערוץ">
+<button onclick="addChannel()">הוסף</button>
+<div id="channels"></div>
+</div>
+
+<!-- ערוץ -->
+<div id="channelPage" class="view">
+<button onclick="go('marketing')">←</button>
+<h2 id="chName"></h2>
+
+<table>
+<thead>
+<tr>
+<th>מי</th>
+<th>מה</th>
+<th>תאריך</th>
+<th>תכנון</th>
+</tr>
+</thead>
+<tbody id="chTable"></tbody>
+</table>
+
+<button onclick="addRow()">הוסף שורה</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<script>
+
+const supabaseClient = supabase.createClient(
+"https://gidrovbkdzdfrtyivplv.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpZHJvdmJrZHpkZnJ0eWl2cGx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTI2MzgsImV4cCI6MjA4OTE2ODYzOH0.i8ngcz25ht9cRpv_bxfpMme4VOaXDFg2-94Te_-zBl0"
+)
+
+let db = JSON.parse(localStorage.getItem("crm")) || {tasks:[],groups:[],marketing:[]}
+
+let currentGroup=null,currentClient=null,currentChannel=null
+
+function go(id){
+document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'))
+document.getElementById(id).classList.add('active')
+render()
+}
+
+function save(){
+localStorage.setItem("crm",JSON.stringify(db))
+supabaseClient.from("app_data").upsert([{id:1,data:db}])
+}
+
+/* יומן */
+function addTask(){
+let t=taskText.value,d=taskDate.value
+if(!t||!d)return
+db.tasks.push({t,d})
+taskText.value=""
+render();save()
+}
+
+function renderTasks(){
+tasks.innerHTML=""
+db.tasks.forEach((x,i)=>{
+tasks.innerHTML+=`<tr>
+<td>${x.t}</td>
+<td>${x.d}</td>
+<td><button onclick="db.tasks.splice(${i},1);render();save()">X</button></td>
+</tr>`
+})
+}
+
+/* לקוחות */
+function addGroup(){
+let n=groupName.value
+if(!n)return
+db.groups.push({name:n,clients:[]})
+groupName.value=""
+render();save()
+}
+
+function renderGroups(){
+groups.innerHTML=""
+db.groups.forEach((g,i)=>{
+groups.innerHTML+=`<div class="card" onclick="openGroup(${i})">${g.name}</div>`
+})
+}
+
+function openGroup(i){
+currentGroup=i
+groupTitle.innerText=db.groups[i].name
+go('groupPage')
+}
+
+function addClient(){
+let n=clientName.value
+if(!n)return
+db.groups[currentGroup].clients.push({name:n})
+clientName.value=""
+render();save()
+}
+
+function renderClients(){
+clientsList.innerHTML=""
+db.groups[currentGroup].clients.forEach((c,i)=>{
+clientsList.innerHTML+=`<div class="card" onclick="openClient(${i})">${c.name}</div>`
+})
+}
+
+function openClient(i){
+currentClient=i
+let c=db.groups[currentGroup].clients[i]
+
+cName.innerText=c.name
+cPhone.value=c.phone||""
+cAddress.value=c.address||""
+cReg.value=c.reg||"בתהליך"
+cPay.value=c.pay||"לא שולם"
+cNotes.value=c.notes||""
+
+go('clientPage')
+}
+
+/* שיווק */
+function addChannel(){
+let n=mName.value
+if(!n)return
+db.marketing.push({name:n,logs:[]})
+mName.value=""
+render();save()
+}
+
+function renderChannels(){
+channels.innerHTML=""
+db.marketing.forEach((c,i)=>{
+channels.innerHTML+=`<div class="card" onclick="openChannel(${i})">${c.name}</div>`
+})
+}
+
+function openChannel(i){
+currentChannel=i
+chName.innerText=db.marketing[i].name
+go('channelPage')
+renderChannel()
+}
+
+function renderChannel(){
+chTable.innerHTML=""
+db.marketing[currentChannel].logs.forEach((l,i)=>{
+chTable.innerHTML+=`<tr>
+<td><input value="${l.w||''}" onchange="db.marketing[${currentChannel}].logs[${i}].w=this.value;save()"></td>
+<td><input value="${l.wh||''}" onchange="db.marketing[${currentChannel}].logs[${i}].wh=this.value;save()"></td>
+<td><input type="date" value="${l.date||''}" onchange="db.marketing[${currentChannel}].logs[${i}].date=this.value;save()"></td>
+<td><input value="${l.plan||''}" onchange="db.marketing[${currentChannel}].logs[${i}].plan=this.value;save()"></td>
+</tr>`
+})
+}
+
+function addRow(){
+db.marketing[currentChannel].logs.push({})
+renderChannel();save()
+}
+
+function render(){
+renderTasks()
+renderGroups()
+if(currentGroup!=null) renderClients()
+renderChannels()
+}
+
+render()
+
+</script>
+
+</body>
+</html>
