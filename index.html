@@ -127,12 +127,20 @@ async function save(){
 
 localStorage.setItem("crm",JSON.stringify(db))
 
+// קודם ננסה לעדכן
 let res = await supabaseClient
 .from("app_data")
 .update({data:db})
 .eq("id",1)
 
-alert(JSON.stringify(res))
+// אם לא עודכן כלום → נוסיף
+if(res.data.length === 0){
+await supabaseClient
+.from("app_data")
+.insert([{id:1,data:db}])
+}
+
+alert("נשמר בענן ✔")
 
 }
 
